@@ -875,4 +875,3 @@ with tab_dataset:
     browse_df = browse_df.sort_values(by=sort_by_col, ascending=False)
     
     st.dataframe(browse_df, use_container_width=True)
-
