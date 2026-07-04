@@ -1,3 +1,17 @@
+import sys
+import subprocess
+
+# Auto-install missing dependencies if the container hasn't loaded them
+required_packages = ["pandas", "numpy", "plotly", "scikit-learn"]
+for package in required_packages:
+    try:
+        __import__(package)
+    except ImportError:
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+        except Exception:
+            pass
+
 import streamlit as st
 import pandas as pd
 import numpy as np
