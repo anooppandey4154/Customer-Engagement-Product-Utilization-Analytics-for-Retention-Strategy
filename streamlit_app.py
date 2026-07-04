@@ -1,15 +1,32 @@
 import sys
+import os
 import subprocess
 
-# Auto-install missing dependencies if the container hasn't loaded them
-required_packages = ["pandas", "numpy", "plotly", "scikit-learn"]
-for package in required_packages:
+# Define a local directory for target installations to bypass permission constraints
+local_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "local_packages")
+if local_dir not in sys.path:
+    sys.path.insert(0, local_dir)
+
+required_packages = {
+    "pandas": "pandas",
+    "numpy": "numpy",
+    "plotly": "plotly",
+    "sklearn": "scikit-learn"
+}
+
+for module_name, pip_name in required_packages.items():
     try:
-        __import__(package)
+        __import__(module_name)
     except ImportError:
         try:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-        except Exception:
+            os.makedirs(local_dir, exist_ok=True)
+            subprocess.check_call([
+                sys.executable, "-m", "pip", "install", 
+                "--target", local_dir, 
+                "--no-cache-dir",
+                pip_name
+            ])
+        except Exception as e:
             pass
 
 import streamlit as st
@@ -889,3 +906,4 @@ with tab_dataset:
     browse_df = browse_df.sort_values(by=sort_by_col, ascending=False)
     
     st.dataframe(browse_df, use_container_width=True)
+
