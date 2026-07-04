@@ -1,40 +1,7 @@
-import sys
-import os
-import subprocess
-
-# Define a local directory for target installations to bypass permission constraints
-local_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "local_packages")
-if local_dir not in sys.path:
-    sys.path.insert(0, local_dir)
-
-required_packages = {
-    "pandas": "pandas",
-    "numpy": "numpy",
-    "plotly": "plotly",
-    "sklearn": "scikit-learn"
-}
-
-for module_name, pip_name in required_packages.items():
-    try:
-        __import__(module_name)
-    except ImportError:
-        try:
-            os.makedirs(local_dir, exist_ok=True)
-            subprocess.check_call([
-                sys.executable, "-m", "pip", "install", 
-                "--target", local_dir, 
-                "--no-cache-dir",
-                pip_name
-            ])
-        except Exception as e:
-            pass
-
 import streamlit as st
 import pandas as pd
 import numpy as np
 import io
-import plotly.express as px
-import plotly.graph_objects as go
 
 # ---------------------------------------------------------
 # Page Configurations & Aesthetic Layout Styles (Bold Theme)
@@ -606,27 +573,11 @@ with tab_overview:
         # Bar Chart showing Active Churn Rate vs Inactive Churn Rate
         chart_data = pd.DataFrame({
             "Segment": ["Active Members", "Inactive Members"],
-            "Churn Rate (%)": [active_churn_rate, inactive_churn_rate],
-            "Retention Rate (%)": [100 - active_churn_rate, 100 - inactive_churn_rate]
-        })
+            "Retention Rate (%)": [100 - active_churn_rate, 100 - inactive_churn_rate],
+            "Churn Rate (%)": [active_churn_rate, inactive_churn_rate]
+        }).set_index("Segment")
         
-        fig_segment = px.bar(
-            chart_data, 
-            x="Segment", 
-            y=["Retention Rate (%)", "Churn Rate (%)"],
-            color_discrete_sequence=["#06b6d4", "#ef4444"],
-            barmode="stack",
-            height=350,
-            template="plotly_dark"
-        )
-        fig_segment.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            xaxis_title="",
-            yaxis_title="Percentage (%)",
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-        )
-        st.plotly_chart(fig_segment, use_container_width=True)
+        st.bar_chart(chart_data, color=["#06b6d4", "#ef4444"], height=350)
         
     with col_chart2:
         st.subheader("Regional Churn Distribution")
@@ -634,21 +585,8 @@ with tab_overview:
         geo_churn = filtered_df.groupby("Geography")['Exited'].mean().reset_index()
         geo_churn['Churn Rate (%)'] = geo_churn['Exited'] * 100
         
-        fig_geo = px.bar(
-            geo_churn,
-            x="Geography",
-            y="Churn Rate (%)",
-            color_discrete_sequence=["#ef4444"],
-            height=350,
-            template="plotly_dark"
-        )
-        fig_geo.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            xaxis_title="",
-            yaxis_title="Exit Rate (%)"
-        )
-        st.plotly_chart(fig_geo, use_container_width=True)
+        geo_chart_df = geo_churn.set_index("Geography")[['Churn Rate (%)']]
+        st.bar_chart(geo_chart_df, color="#ef4444", height=350)
         
     # Demographic Age group analysis
     st.subheader("Age Bracket exit probability analysis")
@@ -659,22 +597,8 @@ with tab_overview:
     age_group_churn = df_age.groupby('AgeGroup', observed=False)['Exited'].mean().reset_index()
     age_group_churn['Churn Rate (%)'] = age_group_churn['Exited'] * 100
     
-    fig_age = px.area(
-        age_group_churn,
-        x="AgeGroup",
-        y="Churn Rate (%)",
-        color_discrete_sequence=["#f43f5e"],
-        height=300,
-        template="plotly_dark"
-    )
-    fig_age.update_traces(fill='tozeroy', fillcolor="rgba(244, 63, 94, 0.15)")
-    fig_age.update_layout(
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        xaxis_title="Age Group Bracket",
-        yaxis_title="Churn Rate %"
-    )
-    st.plotly_chart(fig_age, use_container_width=True)
+    age_chart_df = age_group_churn.set_index("AgeGroup")[['Churn Rate (%)']]
+    st.area_chart(age_chart_df, color="#f43f5e", height=300)
     
     st.markdown("""
     <div class="directive-banner">
@@ -697,23 +621,8 @@ with tab_products:
     col_chart, col_data = st.columns([2, 1])
     
     with col_chart:
-        fig_prod = px.bar(
-            prod_merged,
-            x="NumOfProducts",
-            y="Churn Rate (%)",
-            color="NumOfProducts",
-            color_continuous_scale=["#06b6d4", "#0891b2", "#ef4444", "#dc2626"],
-            labels={"NumOfProducts": "Products Held"},
-            height=380,
-            template="plotly_dark"
-        )
-        fig_prod.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            xaxis_title="Number of Bank Products Held",
-            yaxis_title="Historical Churn Rate (%)"
-        )
-        st.plotly_chart(fig_prod, use_container_width=True)
+        prod_chart_df = prod_merged.set_index("NumOfProducts")[['Churn Rate (%)']]
+        st.bar_chart(prod_chart_df, color="#06b6d4", height=380)
         
     with col_data:
         st.subheader("Statistical Profile")
@@ -906,4 +815,3 @@ with tab_dataset:
     browse_df = browse_df.sort_values(by=sort_by_col, ascending=False)
     
     st.dataframe(browse_df, use_container_width=True)
-
